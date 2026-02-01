@@ -45,7 +45,7 @@ mod tests {
     use super::*;
 
     fn amount(s: &str) -> Amount {
-        Amount::from_str_truncate(s).expect("failed to parse amount")
+        Amount::from_str_rounded(s).expect("failed to parse amount")
     }
 
     #[test]

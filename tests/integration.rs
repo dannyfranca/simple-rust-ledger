@@ -7,7 +7,7 @@ use simple_rust_ledger::parser::CsvParser;
 use simple_rust_ledger::writer::{write_csv, OutputRecord};
 
 fn amount(s: &str) -> Amount {
-    Amount::from_str_truncate(s).expect("failed to parse amount")
+    Amount::from_str_rounded(s).expect("failed to parse amount")
 }
 
 /// Helper to run a CSV through the ledger and get structured output

@@ -130,7 +130,7 @@ impl<R: Read> CsvParser<R> {
         let amount = if amount_str.is_empty() {
             None
         } else {
-            let parsed = Amount::from_str_truncate(amount_str).map_err(|_| ParseError {
+            let parsed = Amount::from_str_rounded(amount_str).map_err(|_| ParseError {
                 line,
                 message: format!("Invalid amount: '{}'", amount_str),
             })?;
@@ -184,7 +184,7 @@ mod tests {
     }
 
     fn amount(s: &str) -> Amount {
-        Amount::from_str_truncate(s).expect("failed to parse amount")
+        Amount::from_str_rounded(s).expect("failed to parse amount")
     }
 
     #[test]

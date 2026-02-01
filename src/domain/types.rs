@@ -35,7 +35,7 @@ impl Amount {
         Amount(value.round_dp(4))
     }
 
-    pub fn from_str_truncate(s: &str) -> Result<Self, rust_decimal::Error> {
+    pub fn from_str_rounded(s: &str) -> Result<Self, rust_decimal::Error> {
         let decimal = Decimal::from_str(s.trim())?;
         Ok(Self::new(decimal))
     }
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_amount_truncates_to_4_decimals() {
-        let amount = Amount::from_str_truncate("1.23456").expect("failed to parse amount");
+        let amount = Amount::from_str_rounded("1.23456").expect("failed to parse amount");
         assert_eq!(
             amount.0,
             Decimal::from_str("1.2346").expect("failed to parse decimal")
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_amount_parses_with_whitespace() {
-        let amount = Amount::from_str_truncate("  100.5  ").expect("failed to parse amount");
+        let amount = Amount::from_str_rounded("  100.5  ").expect("failed to parse amount");
         assert_eq!(
             amount.0,
             Decimal::from_str("100.5").expect("failed to parse decimal")
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_amount_display_4_decimals() {
-        let amount = Amount::from_str_truncate("1.5").expect("failed to parse amount");
+        let amount = Amount::from_str_rounded("1.5").expect("failed to parse amount");
         assert_eq!(format!("{}", amount), "1.5000");
     }
 
