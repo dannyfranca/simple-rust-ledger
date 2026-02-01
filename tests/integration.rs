@@ -202,17 +202,20 @@ withdrawal,1,6,20.0
 
 #[test]
 fn test_output_format() {
-    let input = "type,client,tx,amount\ndeposit,1,1,1.5\n";
+    // Setup: Client 1 has 1.5 available. Client 2 has 2.0 deposited, then disputed (so 2.0 held).
+    let input = "type,client,tx,amount\ndeposit,1,1,1.5\ndeposit,2,2,2.0\ndispute,2,2,";
     let output = get_csv_output(input);
 
-    // Check header
-    assert!(output.starts_with("client,available,held,total,locked\n"));
+    let lines: Vec<&str> = output.lines().collect();
+    assert_eq!(lines[0], "client,available,held,total,locked");
 
-    // Check 4 decimal precision
-    assert!(output.contains("1.5000"));
+    // Check that we have lines for both clients with correct formatting
+    // Client 1: available=1.5, held=0
+    assert!(output.contains("1,1.5000,0.0000,1.5000,false"));
 
-    // Check boolean is lowercase
-    assert!(output.contains(",false"));
+    // Client 2: available=0, held=2.0
+    // This confirms "held" column is correctly populated in CSV output
+    assert!(output.contains("2,0.0000,2.0000,2.0000,false"));
 }
 
 #[test]
@@ -378,5 +381,42 @@ fn test_duplicate_headers_uses_first() {
     let input = "type,type,client,tx,amount\ndeposit,withdrawal,1,1,100\n";
     let accounts = process_csv(input);
     // If first "type" column is used, this is a deposit
+    assert_eq!(accounts[&ClientId(1)].0, amount("100"));
+}
+
+#[test]
+fn test_transaction_id_global_uniqueness() {
+    let input = r#"type,client,tx,amount
+deposit,1,1,100.0
+deposit,2,1,50.0
+"#;
+    let accounts = process_csv(input);
+
+    assert_eq!(accounts[&ClientId(1)].0, amount("100"));
+
+    assert_eq!(
+        accounts.len(),
+        1,
+        "Client 2 should not have an account created if tx id was duplicate"
+    );
+}
+
+#[test]
+fn test_quoted_csv_fields() {
+    let input = r#"type,client,tx,amount
+"deposit","1","1","100.0"
+"withdrawal","1","2","50.0"
+"#;
+    let accounts = process_csv(input);
+
+    assert_eq!(accounts[&ClientId(1)].0, amount("50"));
+}
+
+#[test]
+fn test_quoted_csv_fields_with_commas() {
+    let input = r#""type","client","tx","amount"
+"deposit","1","1","100.0"
+"#;
+    let accounts = process_csv(input);
     assert_eq!(accounts[&ClientId(1)].0, amount("100"));
 }
