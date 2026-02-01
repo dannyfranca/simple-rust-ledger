@@ -121,19 +121,25 @@ mod tests {
 
     #[test]
     fn test_amount_truncates_to_4_decimals() {
-        let amount = Amount::from_str_truncate("1.23456").unwrap();
-        assert_eq!(amount.0, Decimal::from_str("1.2346").unwrap());
+        let amount = Amount::from_str_truncate("1.23456").expect("failed to parse amount");
+        assert_eq!(
+            amount.0,
+            Decimal::from_str("1.2346").expect("failed to parse decimal")
+        );
     }
 
     #[test]
     fn test_amount_parses_with_whitespace() {
-        let amount = Amount::from_str_truncate("  100.5  ").unwrap();
-        assert_eq!(amount.0, Decimal::from_str("100.5").unwrap());
+        let amount = Amount::from_str_truncate("  100.5  ").expect("failed to parse amount");
+        assert_eq!(
+            amount.0,
+            Decimal::from_str("100.5").expect("failed to parse decimal")
+        );
     }
 
     #[test]
     fn test_amount_display_4_decimals() {
-        let amount = Amount::from_str_truncate("1.5").unwrap();
+        let amount = Amount::from_str_truncate("1.5").expect("failed to parse amount");
         assert_eq!(format!("{}", amount), "1.5000");
     }
 

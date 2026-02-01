@@ -45,7 +45,7 @@ mod tests {
     use super::*;
 
     fn amount(s: &str) -> Amount {
-        Amount::from_str_truncate(s).unwrap()
+        Amount::from_str_truncate(s).expect("failed to parse amount")
     }
 
     #[test]
@@ -58,8 +58,8 @@ mod tests {
             total: amount("1.5"),
             locked: false,
         }];
-        write_csv(&mut output, records.into_iter()).unwrap();
-        let csv = String::from_utf8(output).unwrap();
+        write_csv(&mut output, records.into_iter()).expect("failed to write CSV");
+        let csv = String::from_utf8(output).expect("output should be valid UTF-8");
         assert!(csv.contains("1.5000"));
         assert!(csv.contains("0.0000"));
     }
@@ -74,8 +74,8 @@ mod tests {
             total: amount("150"),
             locked: true,
         }];
-        write_csv(&mut output, records.into_iter()).unwrap();
-        let csv = String::from_utf8(output).unwrap();
+        write_csv(&mut output, records.into_iter()).expect("failed to write CSV");
+        let csv = String::from_utf8(output).expect("output should be valid UTF-8");
         let lines: Vec<_> = csv.lines().collect();
         assert_eq!(lines[0], "client,available,held,total,locked");
         assert_eq!(lines[1], "1,100.0000,50.0000,150.0000,true");
@@ -100,8 +100,8 @@ mod tests {
                 locked: false,
             },
         ];
-        write_csv(&mut output, records.into_iter()).unwrap();
-        let csv = String::from_utf8(output).unwrap();
+        write_csv(&mut output, records.into_iter()).expect("failed to write CSV");
+        let csv = String::from_utf8(output).expect("output should be valid UTF-8");
         assert!(csv.contains(",true"));
         assert!(csv.contains(",false"));
         assert!(!csv.contains(",True"));
@@ -118,8 +118,8 @@ mod tests {
             total: amount("-80"),
             locked: true,
         }];
-        write_csv(&mut output, records.into_iter()).unwrap();
-        let csv = String::from_utf8(output).unwrap();
+        write_csv(&mut output, records.into_iter()).expect("failed to write CSV");
+        let csv = String::from_utf8(output).expect("output should be valid UTF-8");
         assert!(csv.contains("-80.0000"));
     }
 
@@ -127,8 +127,8 @@ mod tests {
     fn test_output_empty_records() {
         let mut output = Vec::new();
         let records: Vec<OutputRecord> = vec![];
-        write_csv(&mut output, records.into_iter()).unwrap();
-        let csv = String::from_utf8(output).unwrap();
+        write_csv(&mut output, records.into_iter()).expect("failed to write CSV");
+        let csv = String::from_utf8(output).expect("output should be valid UTF-8");
         assert_eq!(csv, "client,available,held,total,locked\n");
     }
 

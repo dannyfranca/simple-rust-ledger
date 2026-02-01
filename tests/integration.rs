@@ -7,13 +7,13 @@ use simple_rust_ledger::parser::CsvParser;
 use simple_rust_ledger::writer::{write_csv, OutputRecord};
 
 fn amount(s: &str) -> Amount {
-    Amount::from_str_truncate(s).unwrap()
+    Amount::from_str_truncate(s).expect("failed to parse amount")
 }
 
 /// Helper to run a CSV through the ledger and get structured output
 fn process_csv(input: &str) -> HashMap<ClientId, (Amount, Amount, Amount, bool)> {
     let cursor = Cursor::new(input);
-    let parser = CsvParser::new(cursor).unwrap();
+    let parser = CsvParser::new(cursor).expect("failed to create CSV parser");
 
     let mut ledger = Ledger::new();
     for result in parser {
@@ -46,7 +46,7 @@ fn process_csv(input: &str) -> HashMap<ClientId, (Amount, Amount, Amount, bool)>
 
 fn get_csv_output(input: &str) -> String {
     let cursor = Cursor::new(input);
-    let parser = CsvParser::new(cursor).unwrap();
+    let parser = CsvParser::new(cursor).expect("failed to create CSV parser");
 
     let mut ledger = Ledger::new();
     for result in parser {
@@ -65,9 +65,9 @@ fn get_csv_output(input: &str) -> String {
         .accounts()
         .iter()
         .map(|(client_id, account)| OutputRecord::from_account(*client_id, account));
-    write_csv(&mut output, records).unwrap();
+    write_csv(&mut output, records).expect("failed to write CSV output");
 
-    String::from_utf8(output).unwrap()
+    String::from_utf8(output).expect("output should be valid UTF-8")
 }
 
 #[test]
@@ -374,7 +374,6 @@ resolve,1,2,
 
 #[test]
 fn test_duplicate_headers_uses_first() {
-    // When a header appears twice, the parser should use the first occurrence
     // "type" appears twice - should use first column's value
     let input = "type,type,client,tx,amount\ndeposit,withdrawal,1,1,100\n";
     let accounts = process_csv(input);

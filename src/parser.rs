@@ -179,12 +179,12 @@ mod tests {
 
     fn parse_csv(input: &str) -> Vec<Result<InputRecord, ParseError>> {
         let cursor = Cursor::new(input);
-        let parser = CsvParser::new(cursor).unwrap();
+        let parser = CsvParser::new(cursor).expect("failed to create parser");
         parser.collect()
     }
 
     fn amount(s: &str) -> Amount {
-        Amount::from_str_truncate(s).unwrap()
+        Amount::from_str_truncate(s).expect("failed to parse amount")
     }
 
     #[test]
@@ -192,11 +192,14 @@ mod tests {
         let input = "type,client,tx,amount\ndeposit,1,1,100.0\n";
         let results: Vec<_> = parse_csv(input);
         assert_eq!(results.len(), 1);
-        let record = results[0].as_ref().unwrap();
+        let record = results[0].as_ref().expect("record should be ok");
         assert_eq!(record.tx_type, TransactionType::Deposit);
         assert_eq!(record.client_id, ClientId(1));
         assert_eq!(record.tx_id, TransactionId(1));
-        assert_eq!(record.amount.unwrap(), amount("100"));
+        assert_eq!(
+            record.amount.expect("amount should be present"),
+            amount("100")
+        );
     }
 
     #[test]
@@ -212,7 +215,7 @@ mod tests {
         let input = "amount,tx,client,type\n100.0,1,1,deposit\n";
         let results: Vec<_> = parse_csv(input);
         assert_eq!(results.len(), 1);
-        let record = results[0].as_ref().unwrap();
+        let record = results[0].as_ref().expect("record should be ok");
         assert_eq!(record.tx_type, TransactionType::Deposit);
         assert_eq!(record.client_id, ClientId(1));
     }
@@ -230,7 +233,7 @@ mod tests {
         let input = "type,client,tx,amount\ndispute,1,1,\n";
         let results: Vec<_> = parse_csv(input);
         assert_eq!(results.len(), 1);
-        let record = results[0].as_ref().unwrap();
+        let record = results[0].as_ref().expect("record should be ok");
         assert_eq!(record.tx_type, TransactionType::Dispute);
         assert!(record.amount.is_none());
     }
@@ -239,17 +242,23 @@ mod tests {
     fn test_parse_max_precision_4_decimals() {
         let input = "type,client,tx,amount\ndeposit,1,1,1.2345\n";
         let results: Vec<_> = parse_csv(input);
-        let record = results[0].as_ref().unwrap();
-        assert_eq!(record.amount.unwrap(), amount("1.2345"));
+        let record = results[0].as_ref().expect("record should be ok");
+        assert_eq!(
+            record.amount.expect("amount should be present"),
+            amount("1.2345")
+        );
     }
 
     #[test]
     fn test_truncate_excess_precision() {
         let input = "type,client,tx,amount\ndeposit,1,1,1.23456\n";
         let results: Vec<_> = parse_csv(input);
-        let record = results[0].as_ref().unwrap();
+        let record = results[0].as_ref().expect("record should be ok");
         // Should truncate to 4 decimals (with rounding)
-        assert_eq!(record.amount.unwrap(), amount("1.2346"));
+        assert_eq!(
+            record.amount.expect("amount should be present"),
+            amount("1.2346")
+        );
     }
 
     #[test]
@@ -283,7 +292,10 @@ mod tests {
         let input = "type,client,tx,amount\ndeposit,65535,1,100\n";
         let results: Vec<_> = parse_csv(input);
         assert!(results[0].is_ok());
-        assert_eq!(results[0].as_ref().unwrap().client_id, ClientId(65535));
+        assert_eq!(
+            results[0].as_ref().expect("record should be ok").client_id,
+            ClientId(65535)
+        );
     }
 
     #[test]
@@ -292,7 +304,7 @@ mod tests {
         let results: Vec<_> = parse_csv(input);
         assert!(results[0].is_ok());
         assert_eq!(
-            results[0].as_ref().unwrap().tx_id,
+            results[0].as_ref().expect("record should be ok").tx_id,
             TransactionId(4294967295)
         );
     }
@@ -301,7 +313,7 @@ mod tests {
     fn test_leading_zeros() {
         let input = "type,client,tx,amount\ndeposit,001,001,001.0\n";
         let results: Vec<_> = parse_csv(input);
-        let record = results[0].as_ref().unwrap();
+        let record = results[0].as_ref().expect("record should be ok");
         assert_eq!(record.client_id, ClientId(1));
         assert_eq!(record.tx_id, TransactionId(1));
     }
@@ -367,5 +379,95 @@ chargeback,1,3,
         let result = CsvParser::new(cursor);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("amount"));
+    }
+
+    #[test]
+    fn test_bom_prefix_handled() {
+        let input = "\u{FEFF}type,client,tx,amount\ndeposit,1,1,100\n";
+        let results: Vec<_> = parse_csv(input);
+        assert_eq!(results.len(), 1);
+        assert!(results[0].is_ok());
+        assert_eq!(
+            results[0].as_ref().expect("record should be ok").client_id,
+            ClientId(1)
+        );
+    }
+
+    #[test]
+    fn test_scientific_notation_rejected() {
+        let input = "type,client,tx,amount\ndeposit,1,1,1e2\n";
+        let results: Vec<_> = parse_csv(input);
+        assert!(results[0].is_err());
+        assert!(results[0]
+            .as_ref()
+            .unwrap_err()
+            .message
+            .contains("Invalid amount"));
+    }
+
+    #[test]
+    fn test_embedded_comma_in_quoted_amount() {
+        let input = "type,client,tx,amount\ndeposit,1,1,\"1,000\"\n";
+        let results: Vec<_> = parse_csv(input);
+        // "1,000" is not a valid decimal - should fail parsing
+        assert!(results[0].is_err());
+    }
+
+    #[test]
+    fn test_float_client_id_rejected() {
+        let input = "type,client,tx,amount\ndeposit,1.5,1,100\n";
+        let results: Vec<_> = parse_csv(input);
+        assert!(results[0].is_err());
+        assert!(results[0]
+            .as_ref()
+            .unwrap_err()
+            .message
+            .contains("Invalid client ID"));
+    }
+
+    #[test]
+    fn test_negative_client_id_rejected() {
+        let input = "type,client,tx,amount\ndeposit,-1,1,100\n";
+        let results: Vec<_> = parse_csv(input);
+        assert!(results[0].is_err());
+        assert!(results[0]
+            .as_ref()
+            .unwrap_err()
+            .message
+            .contains("Invalid client ID"));
+    }
+
+    #[test]
+    fn test_float_tx_id_rejected() {
+        let input = "type,client,tx,amount\ndeposit,1,1.5,100\n";
+        let results: Vec<_> = parse_csv(input);
+        assert!(results[0].is_err());
+        assert!(results[0]
+            .as_ref()
+            .unwrap_err()
+            .message
+            .contains("Invalid transaction ID"));
+    }
+
+    #[test]
+    fn test_unicode_in_type_rejected() {
+        let input = "type,client,tx,amount\ndëposit,1,1,100\n";
+        let results: Vec<_> = parse_csv(input);
+        assert!(results[0].is_err());
+        assert!(results[0]
+            .as_ref()
+            .unwrap_err()
+            .message
+            .contains("Unknown transaction type"));
+    }
+
+    #[test]
+    fn test_very_long_amount_handled() {
+        let input = "type,client,tx,amount\ndeposit,1,1,99999999999999999999999999999999999\n";
+        let results: Vec<_> = parse_csv(input);
+        // Should either parse successfully (rust_decimal can handle large numbers) or fail gracefully
+        // rust_decimal supports up to 28-29 significant digits, so this may succeed or fail
+        assert_eq!(results.len(), 1);
+        // Either OK (parsed) or Err (overflow) - both are acceptable graceful handling
     }
 }

@@ -189,7 +189,7 @@ mod tests {
     use super::*;
 
     fn amount(s: &str) -> Amount {
-        Amount::from_str_truncate(s).unwrap()
+        Amount::from_str_truncate(s).expect("failed to parse amount")
     }
 
     fn client(id: u16) -> ClientId {
@@ -209,7 +209,9 @@ mod tests {
             tx(1),
             Some(amount("100"))
         ));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist after deposit");
         assert_eq!(acc.available, amount("100"));
         assert_eq!(acc.total(), amount("100"));
     }
@@ -224,7 +226,9 @@ mod tests {
             Some(amount("100")),
         );
         assert!(ledger.process(TransactionType::Dispute, client(1), tx(1), None));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist after dispute");
         assert_eq!(acc.available, amount("0"));
         assert_eq!(acc.held, amount("100"));
         assert_eq!(acc.total(), amount("100"));
@@ -241,7 +245,9 @@ mod tests {
         );
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
         assert!(ledger.process(TransactionType::Resolve, client(1), tx(1), None));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist after resolve");
         assert_eq!(acc.available, amount("100"));
         assert_eq!(acc.held, amount("0"));
     }
@@ -257,7 +263,9 @@ mod tests {
         );
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
         assert!(ledger.process(TransactionType::Chargeback, client(1), tx(1), None));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist after chargeback");
         assert_eq!(acc.available, amount("0"));
         assert_eq!(acc.held, amount("0"));
         assert_eq!(acc.total(), amount("0"));
@@ -402,7 +410,9 @@ mod tests {
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
         ledger.process(TransactionType::Chargeback, client(1), tx(1), None);
 
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
         // available should be -80 (20 - 100 = -80)
         assert_eq!(format!("{}", acc.available), "-80.0000");
         assert!(acc.locked);
@@ -424,7 +434,9 @@ mod tests {
             tx(1),
             Some(amount("100"))
         ));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
         assert_eq!(acc.available, amount("100")); // Not 200
     }
 
@@ -450,7 +462,9 @@ mod tests {
             tx(2),
             Some(amount("30"))
         ));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
         assert_eq!(acc.available, amount("70")); // 100 - 30, not 100 - 60
     }
 
@@ -471,7 +485,9 @@ mod tests {
             tx(1),
             Some(amount("50"))
         ));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
         assert_eq!(acc.available, amount("100")); // No withdrawal happened
     }
 
@@ -553,8 +569,12 @@ mod tests {
             Some(amount("50")),
         );
 
-        let acc1 = ledger.get_account(client(1)).unwrap();
-        let acc2 = ledger.get_account(client(2)).unwrap();
+        let acc1 = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
+        let acc2 = ledger
+            .get_account(client(2))
+            .expect("client(2) account should exist");
         assert_eq!(acc1.available, amount("50"));
         assert_eq!(acc2.available, amount("200"));
     }
@@ -568,7 +588,9 @@ mod tests {
             tx(1),
             Some(amount("0"))
         ));
-        let acc = ledger.get_account(client(1)).unwrap();
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
         assert_eq!(acc.available, amount("0"));
     }
 
