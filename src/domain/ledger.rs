@@ -69,15 +69,16 @@ impl Ledger {
             _ => return false,
         };
 
-        if !self.processed_tx_ids.insert(tx_id) {
+        if self.processed_tx_ids.contains(&tx_id) {
             return false;
         }
 
         let account = self.get_or_create_account(client_id);
         if !account.deposit(amount) {
-            self.processed_tx_ids.remove(&tx_id);
             return false;
         }
+
+        self.processed_tx_ids.insert(tx_id);
         self.deposits.insert(
             tx_id,
             StoredTransaction {
@@ -86,7 +87,6 @@ impl Ledger {
                 state: TransactionState::None,
             },
         );
-
         true
     }
 
@@ -101,26 +101,23 @@ impl Ledger {
             _ => return false,
         };
 
-        // Idempotency: ignore duplicate tx IDs
-        if !self.processed_tx_ids.insert(tx_id) {
+        if self.processed_tx_ids.contains(&tx_id) {
             return false;
         }
 
         let account = self.get_or_create_account(client_id);
         if !account.withdraw(amount) {
-            // Failed (locked or insufficient funds), rollback tx ID tracking
-            self.processed_tx_ids.remove(&tx_id);
             return false;
         }
 
+        self.processed_tx_ids.insert(tx_id);
         true
     }
 
     fn process_dispute(&mut self, client_id: ClientId, tx_id: TransactionId) -> bool {
-        // Find the deposit
         let stored = match self.deposits.get_mut(&tx_id) {
             Some(s) => s,
-            None => return false, // tx not found
+            None => return false,
         };
 
         if stored.client_id != client_id {
@@ -134,7 +131,6 @@ impl Ledger {
         let amount = stored.amount;
         stored.state = TransactionState::Disputed;
 
-        // Allowed on locked accounts
         let account = self.get_or_create_account(client_id);
         account.hold(amount);
 
@@ -158,7 +154,6 @@ impl Ledger {
         let amount = stored.amount;
         stored.state = TransactionState::Resolved;
 
-        // Allowed on locked accounts
         let account = self.get_or_create_account(client_id);
         account.release(amount);
 
@@ -182,7 +177,6 @@ impl Ledger {
         let amount = stored.amount;
         stored.state = TransactionState::ChargedBack;
 
-        // Allowed on locked accounts
         let account = self.get_or_create_account(client_id);
         account.chargeback(amount);
 
