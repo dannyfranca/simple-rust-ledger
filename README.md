@@ -28,6 +28,20 @@ cargo run -- transactions.csv > accounts.csv
 
 See `samples/` for test cases covering: deposits, withdrawals, disputes, chargebacks, locked accounts, negative balances, edge cases, and malformed input.
 
+## Stress Testing
+
+Generate large datasets to stress test the engine:
+
+```bash
+# Generate and pipe 500k transactions directly (default is 0 errors)
+cargo run --release --example stress_generator -- -n 500000 | cargo run --release -- /dev/stdin > output.csv
+
+# To include corrupted lines (e.g., 5% error rate):
+cargo run --release --example stress_generator -- -n 500000 -e 5 | cargo run --release -- /dev/stdin > output.csv
+```
+
+Generator options: `cargo run --example stress_generator -- --help`
+
 ## What if scaling to thousands of concurrent TCP streams?
 
 First thought was to use a Mutex or RwLock, but that would be inefficient due to lock contention.
