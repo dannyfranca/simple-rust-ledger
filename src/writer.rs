@@ -145,4 +145,53 @@ mod tests {
         assert_eq!(record.total, amount("100"));
         assert!(!record.locked);
     }
+
+    #[test]
+    fn test_output_no_trailing_whitespace() {
+        let mut output = Vec::new();
+        let records = vec![
+            OutputRecord {
+                client: ClientId(1),
+                available: amount("100"),
+                held: amount("0"),
+                total: amount("100"),
+                locked: false,
+            },
+            OutputRecord {
+                client: ClientId(2),
+                available: amount("50"),
+                held: amount("25"),
+                total: amount("75"),
+                locked: true,
+            },
+        ];
+        write_csv(&mut output, records.into_iter()).expect("failed to write CSV");
+        let csv = String::from_utf8(output).expect("output should be valid UTF-8");
+        for line in csv.lines() {
+            assert!(
+                !line.ends_with(' '),
+                "Line has trailing whitespace: {:?}",
+                line
+            );
+            assert!(!line.ends_with('\t'), "Line has trailing tab: {:?}", line);
+        }
+    }
+
+    #[test]
+    fn test_output_unix_newlines() {
+        let mut output = Vec::new();
+        let records = vec![OutputRecord {
+            client: ClientId(1),
+            available: amount("100"),
+            held: amount("0"),
+            total: amount("100"),
+            locked: false,
+        }];
+        write_csv(&mut output, records.into_iter()).expect("failed to write CSV");
+        let csv = String::from_utf8(output).expect("output should be valid UTF-8");
+        // Should not contain CRLF
+        assert!(!csv.contains("\r\n"), "Output contains CRLF instead of LF");
+        // Should contain at least one newline
+        assert!(csv.contains('\n'), "Output has no newlines");
+    }
 }
