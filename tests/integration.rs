@@ -371,3 +371,13 @@ resolve,1,2,
     assert_eq!(accounts[&ClientId(1)].0, amount("50")); // 50 from resolved dispute
     assert_eq!(accounts[&ClientId(1)].1, amount("0")); // nothing held after resolve
 }
+
+#[test]
+fn test_duplicate_headers_uses_first() {
+    // When a header appears twice, the parser should use the first occurrence
+    // "type" appears twice - should use first column's value
+    let input = "type,type,client,tx,amount\ndeposit,withdrawal,1,1,100\n";
+    let accounts = process_csv(input);
+    // If first "type" column is used, this is a deposit
+    assert_eq!(accounts[&ClientId(1)].0, amount("100"));
+}
