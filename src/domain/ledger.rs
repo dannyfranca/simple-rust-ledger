@@ -612,7 +612,6 @@ mod tests {
         );
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
         assert!(ledger.process(TransactionType::Resolve, client(1), tx(1), None));
-        // Second resolve should fail
         assert!(!ledger.process(TransactionType::Resolve, client(1), tx(1), None));
     }
 
@@ -627,7 +626,6 @@ mod tests {
         );
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
         assert!(ledger.process(TransactionType::Chargeback, client(1), tx(1), None));
-        // Second chargeback should fail
         assert!(!ledger.process(TransactionType::Chargeback, client(1), tx(1), None));
     }
 
@@ -642,7 +640,6 @@ mod tests {
         );
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
         ledger.process(TransactionType::Chargeback, client(1), tx(1), None);
-        // Resolve after chargeback should fail
         assert!(!ledger.process(TransactionType::Resolve, client(1), tx(1), None));
     }
 
@@ -656,9 +653,7 @@ mod tests {
             Some(amount("100")),
         );
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
-        // Client 2 tries to resolve client 1's disputed transaction
         assert!(!ledger.process(TransactionType::Resolve, client(2), tx(1), None));
-        // Verify client 1's funds still held
         let acc = ledger
             .get_account(client(1))
             .expect("client(1) account should exist");
@@ -675,9 +670,7 @@ mod tests {
             Some(amount("100")),
         );
         ledger.process(TransactionType::Dispute, client(1), tx(1), None);
-        // Client 2 tries to chargeback client 1's disputed transaction
         assert!(!ledger.process(TransactionType::Chargeback, client(2), tx(1), None));
-        // Verify client 1's account not locked
         let acc = ledger
             .get_account(client(1))
             .expect("client(1) account should exist");
@@ -693,7 +686,6 @@ mod tests {
             tx(1),
             Some(amount("100")),
         );
-        // Zero withdrawal should succeed as no-op
         assert!(ledger.process(
             TransactionType::Withdrawal,
             client(1),
