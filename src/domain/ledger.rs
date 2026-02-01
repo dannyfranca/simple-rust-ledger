@@ -600,4 +600,127 @@ mod tests {
         let neg = Amount::new(rust_decimal::Decimal::new(-100, 0));
         assert!(!ledger.process(TransactionType::Deposit, client(1), tx(1), Some(neg)));
     }
+
+    #[test]
+    fn test_re_resolve_same_tx_ignored() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        ledger.process(TransactionType::Dispute, client(1), tx(1), None);
+        assert!(ledger.process(TransactionType::Resolve, client(1), tx(1), None));
+        // Second resolve should fail
+        assert!(!ledger.process(TransactionType::Resolve, client(1), tx(1), None));
+    }
+
+    #[test]
+    fn test_re_chargeback_same_tx_ignored() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        ledger.process(TransactionType::Dispute, client(1), tx(1), None);
+        assert!(ledger.process(TransactionType::Chargeback, client(1), tx(1), None));
+        // Second chargeback should fail
+        assert!(!ledger.process(TransactionType::Chargeback, client(1), tx(1), None));
+    }
+
+    #[test]
+    fn test_chargeback_then_resolve_ignored() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        ledger.process(TransactionType::Dispute, client(1), tx(1), None);
+        ledger.process(TransactionType::Chargeback, client(1), tx(1), None);
+        // Resolve after chargeback should fail
+        assert!(!ledger.process(TransactionType::Resolve, client(1), tx(1), None));
+    }
+
+    #[test]
+    fn test_resolve_wrong_client_ignored() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        ledger.process(TransactionType::Dispute, client(1), tx(1), None);
+        // Client 2 tries to resolve client 1's disputed transaction
+        assert!(!ledger.process(TransactionType::Resolve, client(2), tx(1), None));
+        // Verify client 1's funds still held
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
+        assert_eq!(acc.held, amount("100"));
+    }
+
+    #[test]
+    fn test_chargeback_wrong_client_ignored() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        ledger.process(TransactionType::Dispute, client(1), tx(1), None);
+        // Client 2 tries to chargeback client 1's disputed transaction
+        assert!(!ledger.process(TransactionType::Chargeback, client(2), tx(1), None));
+        // Verify client 1's account not locked
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
+        assert!(!acc.locked);
+    }
+
+    #[test]
+    fn test_zero_amount_withdrawal() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        // Zero withdrawal should succeed as no-op
+        assert!(ledger.process(
+            TransactionType::Withdrawal,
+            client(1),
+            tx(2),
+            Some(amount("0"))
+        ));
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
+        assert_eq!(acc.available, amount("100"));
+    }
+
+    #[test]
+    fn test_held_never_negative_invariant() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        ledger.process(TransactionType::Dispute, client(1), tx(1), None);
+        ledger.process(TransactionType::Resolve, client(1), tx(1), None);
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
+        assert!(!acc.held.is_negative());
+        assert_eq!(acc.held, amount("0"));
+    }
 }
