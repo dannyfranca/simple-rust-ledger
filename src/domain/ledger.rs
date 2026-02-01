@@ -602,6 +602,23 @@ mod tests {
     }
 
     #[test]
+    fn test_negative_withdrawal_rejected() {
+        let mut ledger = Ledger::new();
+        ledger.process(
+            TransactionType::Deposit,
+            client(1),
+            tx(1),
+            Some(amount("100")),
+        );
+        let neg = Amount::new(rust_decimal::Decimal::new(-100, 0));
+        assert!(!ledger.process(TransactionType::Withdrawal, client(1), tx(2), Some(neg)));
+        let acc = ledger
+            .get_account(client(1))
+            .expect("client(1) account should exist");
+        assert_eq!(acc.available, amount("100"));
+    }
+
+    #[test]
     fn test_re_resolve_same_tx_ignored() {
         let mut ledger = Ledger::new();
         ledger.process(
