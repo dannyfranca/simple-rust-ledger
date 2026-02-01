@@ -420,3 +420,52 @@ fn test_quoted_csv_fields_with_commas() {
     let accounts = process_csv(input);
     assert_eq!(accounts[&ClientId(1)].0, amount("100"));
 }
+
+#[test]
+fn test_resolve_undisputed_ignored() {
+    let input = r#"type,client,tx,amount
+deposit,1,1,100.0
+resolve,1,1,
+"#;
+    let accounts = process_csv(input);
+
+    assert_eq!(accounts[&ClientId(1)].0, amount("100"));
+    assert_eq!(accounts[&ClientId(1)].1, amount("0"));
+}
+
+#[test]
+fn test_chargeback_undisputed_ignored() {
+    let input = r#"type,client,tx,amount
+deposit,1,1,100.0
+chargeback,1,1,
+"#;
+    let accounts = process_csv(input);
+
+    assert_eq!(accounts[&ClientId(1)].0, amount("100"));
+    assert_eq!(accounts[&ClientId(1)].1, amount("0"));
+    assert!(!accounts[&ClientId(1)].3);
+}
+
+#[test]
+fn test_dispute_withdrawal_ignored() {
+    let input = r#"type,client,tx,amount
+deposit,1,1,100.0
+withdrawal,1,2,50.0
+dispute,1,2,
+"#;
+    let accounts = process_csv(input);
+
+    assert_eq!(accounts[&ClientId(1)].0, amount("50"));
+    assert_eq!(accounts[&ClientId(1)].1, amount("0"));
+}
+
+#[test]
+fn test_high_precision_rounding() {
+    let input = r#"type,client,tx,amount
+deposit,1,1,1.00009
+deposit,1,2,0.00001
+"#;
+    let accounts = process_csv(input);
+
+    assert_eq!(accounts[&ClientId(1)].0, amount("1.0001"));
+}
