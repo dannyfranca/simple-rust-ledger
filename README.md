@@ -2,7 +2,7 @@
 
 A toy payments engine that processes transactions from CSV, handles disputes and chargebacks, and outputs client account balances.
 
-Opted to keep it single threaded as the real bottleneck is parsing CSV, not processing transactions.
+Opted to keep it single threaded as the real bottleneck is loading and parsing CSV, not processing transactions.
 
 ## Usage
 
