@@ -168,12 +168,12 @@ fn generate_corrupted_line(rng: &mut Lcg, tx_id: u32) -> String {
         0 => format!("transfer,1,{},100.0", tx_id), // Invalid tx type
         1 => format!("credit,1,{},50.0", tx_id),    // Invalid tx type
         2 => format!("deposit,99999,{},100.0", tx_id), // Client ID overflow (>65535)
-        3 => format!("deposit,1,9999999999,100.0"), // TX ID overflow (>u32::MAX)
+        3 => "deposit,1,9999999999,100.0".to_string(), // TX ID overflow (>u32::MAX)
         4 => format!("deposit,1,{},-50.0", tx_id),  // Negative amount
         5 => format!("deposit,1,{},", tx_id),       // Missing amount
         6 => format!("deposit,abc,{},100.0", tx_id), // Non-numeric client
-        7 => format!("deposit,1,xyz,100.0"),        // Non-numeric tx_id
-        _ => format!("invalid,line,data"),
+        7 => "deposit,1,xyz,100.0".to_string(),        // Non-numeric tx_id
+        _ => "invalid,line,data".to_string(),
     }
 }
 
