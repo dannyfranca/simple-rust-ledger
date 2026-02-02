@@ -26,7 +26,7 @@ cargo run -- transactions.csv > accounts.csv
 
 ## Testing
 
-See `samples/` for test cases covering: deposits, withdrawals, disputes, chargebacks, locked accounts, negative balances, edge cases, and malformed input.
+Run `cargo test` for comprehensive coverage including: deposits, withdrawals, disputes, chargebacks, locked accounts, negative balances, edge cases, and malformed input. Unit tests are colocated in `src/` modules; integration tests are in `tests/integration.rs`.
 
 ## Stress Testing
 
