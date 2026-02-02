@@ -16,15 +16,13 @@ fn process_csv(input: &str) -> HashMap<ClientId, (Amount, Amount, Amount, bool)>
     let parser = CsvParser::new(cursor).expect("failed to create CSV parser");
 
     let mut ledger = Ledger::new();
-    for result in parser {
-        if let Ok(record) = result {
-            ledger.process(
-                record.tx_type,
-                record.client_id,
-                record.tx_id,
-                record.amount,
-            );
-        }
+    for record in parser.flatten() {
+        ledger.process(
+            record.tx_type,
+            record.client_id,
+            record.tx_id,
+            record.amount,
+        );
     }
 
     ledger
@@ -49,15 +47,13 @@ fn get_csv_output(input: &str) -> String {
     let parser = CsvParser::new(cursor).expect("failed to create CSV parser");
 
     let mut ledger = Ledger::new();
-    for result in parser {
-        if let Ok(record) = result {
-            ledger.process(
-                record.tx_type,
-                record.client_id,
-                record.tx_id,
-                record.amount,
-            );
-        }
+    for record in parser.flatten() {
+        ledger.process(
+            record.tx_type,
+            record.client_id,
+            record.tx_id,
+            record.amount,
+        );
     }
 
     let mut output = Vec::new();
