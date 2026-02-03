@@ -15,9 +15,25 @@ cargo run -- transactions.csv > accounts.csv
 1. **Disputes only on deposits** - Per spec, only deposits can be disputed (fraud scenario describes deposit reversals). Disputing a withdrawal is ignored.
 2. **Locked/Frozen accounts** - Block deposits/withdrawals, but allow disputes, resolutions, and chargebacks on existing transactions.
 3. **Negative balances** - Can occur from chargebacks after partial withdrawals (not from normal operations).
-4. **Precision** - Up to 4 decimal places, truncated (not rejected). No banker's rounding. Output always shows 4 decimals.
+4. **Precision** - Up to 4 decimal places, while more decimals are not expected, the library `rust_decimal` handles banker's rounding.
 5. **Re-dispute** - After resolve/chargeback, cannot be re-disputed.
 6. **Malformed/invalid lines** - Logged to stderr and keeps processing.
+
+## Design Decisions
+
+- Exact one CLI argument: Exit with an error message otherwise
+- Missing columns lead to exit with error message, while extra columns are ignored
+- No floating points: use the `rust_decimal` crate
+- Serialize consistently 4 decimal places in the output CSV. Custom serializer with `rust_decimal` and `serde`
+- Newtype pattern for Client IDs and transaction IDs (u16 and u32 respectively)
+- Use single thread as the bottleneck is file IO and parsing, not CPU.
+- Decouple the data stream from file IO, allowing other data sources to be implemented
+- Use a Transaction enum rather than typestate to keep the code simple (readability over correctness for this simple project)
+- Idempotency: Do not process the same withdrawal/deposit more than once (use a HashSet of tx IDs)
+- Keep track of deposits in a HashMap due to disputes
+- Core Domain with pure Rust
+- Application Layer connecting the domain logic to the data stream
+- CLI Layer as an executable interface
 
 ## Error Handling
 
