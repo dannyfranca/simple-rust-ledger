@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::File;
-use std::io::{self, BufReader, Write};
+use std::io::{self, BufReader};
 use std::process;
 
 use simple_rust_ledger::domain::Ledger;
@@ -44,7 +44,7 @@ fn run() -> Result<(), String> {
                 );
             }
             Err(e) => {
-                let _ = writeln!(io::stderr(), "Warning: {}", e);
+                eprintln!("Warning: {}", e);
             }
         }
     }
