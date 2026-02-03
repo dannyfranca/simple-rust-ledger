@@ -64,6 +64,6 @@ First thought was to use a Mutex or RwLock, but that would be inefficient due to
 
 Since each client_id is unique, we can use sharding instead, routing by `client_id % shard_count`, where each thread owns its own data, no locking needed.
 
-My first option would be to use Tokio for I/O (accepting connections, reading bytes) and dedicated `std::thread`s for shard workers. Dedicated threads avoid work-stealing so each shard stays cache-friendly. Tokio could be better if shards are unevenly distributed—only a proper benchmark would tell.
+My first option would be to use Tokio for I/O (accepting connections, reading bytes) and dedicated `std::thread`s for shard workers. Dedicated threads avoid work-stealing so each shard stays cache-friendly. Tokio could be better if shards are unevenly distributed, but only a proper benchmark would tell.
 
 For final output, use `std::thread::scope` with channels: each shard sends its results through an `mpsc` channel, and a coordinator collects them. Rust's ownership guarantees senders are dropped when threads complete, safely signaling when all results are in. Since client IDs are unique per shard, no deduplication needed—just concatenation.
