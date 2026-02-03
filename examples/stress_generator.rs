@@ -172,7 +172,7 @@ fn generate_corrupted_line(rng: &mut Lcg, tx_id: u32) -> String {
         4 => format!("deposit,1,{},-50.0", tx_id),  // Negative amount
         5 => format!("deposit,1,{},", tx_id),       // Missing amount
         6 => format!("deposit,abc,{},100.0", tx_id), // Non-numeric client
-        7 => "deposit,1,xyz,100.0".to_string(),        // Non-numeric tx_id
+        7 => "deposit,1,xyz,100.0".to_string(),     // Non-numeric tx_id
         _ => "invalid,line,data".to_string(),
     }
 }
